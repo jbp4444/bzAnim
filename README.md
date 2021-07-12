@@ -60,22 +60,22 @@ pprint( bz.info() )
 
 ## Helper Functions
 * `bz.isReady()`
- * there can be a slight delay at the start of the program where the main controller script is still 'registering' with the bzAnim library (the user-facing code); you can check that it is ready with this function
- * if the system is not ready, usually an 0.1s or 0.2s delay will be enough:
+  * there can be a slight delay at the start of the program where the main controller script is still 'registering' with the bzAnim library (the user-facing code); you can check that it is ready with this function
+  * if the system is not ready, usually an 0.1s or 0.2s delay will be enough:
 * `bz.info()`
- * returns a table with information about the system -- the main controller script URL; the list of known easing functions; the current max number of points
+  * returns a table with information about the system -- the main controller script URL; the list of known easing functions; the current max number of points
 * `bz.setDebugLevel( 10 )`
- * sets the amount of debug printing done by the system (0=none, 1=minimal, 10=max); the start-of-program delay can trip you up here -- if your graphics object script calls `setDebugLevel` in it's `init()` routine, there is the chance that the controller isn't ready yet to receive the message; it is often good enough to use `timer.delay` to get around this:
+  * sets the amount of debug printing done by the system (0=none, 1=minimal, 10=max); the start-of-program delay can trip you up here -- if your graphics object script calls `setDebugLevel` in it's `init()` routine, there is the chance that the controller isn't ready yet to receive the message; it is often good enough to use `timer.delay` to get around this:
 
 ```lua
 timer.delay( 0.2, false, function()
 	bz.setDebugLevel(10)
 end )
 ```
- * setting debug level above 5 will have the system draw the path in simple lines (using `msg.post("@render:", "draw_line", ...)`)
+  * setting debug level above 5 will have the system draw the path in simple lines (using `msg.post("@render:", "draw_line", ...)`)
 
 * `bz.setMaxPts( 15 )`
- * by default, we pre-calculate some coefficients for up to 10 points in a curve; if you plan to use more than that, then call `bz.setMaxPts` with the correct value prior to making any `bz.animate` calls
+  * by default, we pre-calculate some coefficients for up to 10 points in a curve; if you plan to use more than that, then call `bz.setMaxPts` with the correct value prior to making any `bz.animate` calls
 
 
 ## Message Callbacks
