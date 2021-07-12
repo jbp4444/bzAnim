@@ -90,6 +90,12 @@ The github repos has a simple example with two alien ships that fly along bezier
 
 ![Screenshot of example code](screenshot.png)
 
+The collection hierarchy embeds the `bzController.script` in the main collection:
+
+![Collection hierarchy](collection_hierarchy.png)
+
+
+
 ## Future Work/To-Do Items
 * We currently use a "message-back" not a function callback; i.e. a message is sent from the controller to the graphics objec through the standard Defold messaging system -- and that may not fit all possible use-cases.  It would be great to add a "true" callback to a user-provided function, but Defold can't pickle/serialize a user-provided function to embed with the messaging system, so it's not nearly as easy as the message-back approach.
 * The easing system is a horrible, horrible hack -- we pull the C-language include file that has all the easing function samples used by the "real" Defold easing functions, then unpack them into our Lua code!  If the Defold/C header file ever changes, we'll have to do that all over again (honestly, it was a bunch of search/replace steps, so not too bad).  But it means that our easing functions could become out of sync with Defold's at any point.
