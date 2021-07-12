@@ -65,14 +65,16 @@ pprint( bz.info() )
 * `bz.info()`
   * returns a table with information about the system -- the main controller script URL; the list of known easing functions; the current max number of points
 * `bz.setDebugLevel( 10 )`
-  * sets the amount of debug printing done by the system (0=none, 1=minimal, 10=max); the start-of-program delay can trip you up here -- if your graphics object script calls `setDebugLevel` in it's `init()` routine, there is the chance that the controller isn't ready yet to receive the message; it is often good enough to use `timer.delay` to get around this:
+  * sets the amount of debug printing done by the system (0=none, 1=minimal, 10=max)
+  * note that setting the debug level above 5 will have the system draw the path in simple lines (using `msg.post("@render:", "draw_line", ...)`)
+  * the start-of-program delay can trip you up here -- if your graphics object script calls `setDebugLevel` in it's `init()` routine, there is the chance that the controller isn't ready yet to receive the message (and it will be silently ignored)
+    * to get around this, try `timer.delay`:
 
 ```lua
 timer.delay( 0.2, false, function()
 	bz.setDebugLevel(10)
 end )
 ```
-  * setting debug level above 5 will have the system draw the path in simple lines (using `msg.post("@render:", "draw_line", ...)`)
 
 * `bz.setMaxPts( 15 )`
   * by default, we pre-calculate some coefficients for up to 10 points in a curve; if you plan to use more than that, then call `bz.setMaxPts` with the correct value prior to making any `bz.animate` calls
