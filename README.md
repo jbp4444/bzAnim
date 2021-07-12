@@ -5,7 +5,7 @@ This is a Lua/Defold-based animation library that allows you to send graphics ob
 ## Installation
 You can use bezierLibrary in your own project by adding this project as a Defold library dependency. Open your game.project file and in the dependencies field under project add:
 
-https://github.com/AllanDouglas/deftimeline/archive/master.zip
+https://github.com/jbp4444/bzAnim/archive/refs/heads/main.zip
 
 Once added, you should include the bzController.script in your main collection, then include the bzLibrary.lua module in your own graphics objects scripts:
 
