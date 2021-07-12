@@ -14,7 +14,9 @@ local bz = require("bzAnim.bzLibrary")
 ```
 
 ## Usage
-With the bz-library included in your script, you can add new animations with:
+In your main collection file, include the `bzController.script` - it can be almost anywhere since it will 'register' itself with the user-facing library.  E.g. create an empty graphics object, then do 'Add Component File' to attach the `bzController.script` to it.
+
+In your script, you first include the library as above (`local bz=require('bzAnim.bzLibrary')`) and then you can add new animations with:
 
 ```lua
 bz.animate({ 
