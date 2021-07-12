@@ -14,29 +14,26 @@
 -- limitations under the License.
 -- 
 
+
+-- include the user-facing library (not the controller)
 local bz = require( 'bzAnim.bzLibrary' )
+
 
 function init( self )
 	msg.post( '.', 'acquire_input_focus' )
 
+	-- if you want debugging turned on, you need a slight delay
+	-- to allow the controller to register with the user-library
 	timer.delay( 0.2, false, function()
 		bz.setDebugLevel(10)
 		pprint( bz.info() )
 	end )
 end
 
--- function final(self)
--- end
-
--- function update( self, dt )
--- end
-
--- function on_message( self, message_id, message, sender )
--- end
-
 function on_input( self, action_id, action )
 	if( action_id == hash('text') ) then
 		if( action.text == 'a' ) then
+			-- simple curved animation
 			bz.animate({ obj='alien1', duration=4.0, path={
 				--{ 100   100 }
 				{ x=100,y=500 },
@@ -45,6 +42,7 @@ function on_input( self, action_id, action )
 				{ x=900,y=100 },
 			} })
 		elseif( action.text == 'b' ) then
+			-- adding an easing function to alter speed over the curve
 			bz.animate({ obj='alien1', duration=4.0, path={
 				--{ 100   100 }
 				{ y=500 },
@@ -53,11 +51,16 @@ function on_input( self, action_id, action )
 				{ y=100 },
 			}, easing='TYPE_INCUBIC' })
 		elseif( action.text == 'c' ) then
+			-- adding a delay to the start of the animation
+			-- and sending a message when complete
+			-- NOTE: the message is sent to the 'alien' object,
+			--       and NOT to this script
 			bz.animate({ obj='alien1', duration=2.0, path={
 					{ x=500,y=500 },
 					{ x=900,y=100 },
-			}, delay=1.0 })
+			}, delay=1.0, on_complete=true })
 		elseif( action.text == 'd' ) then
+			-- launch two animations at same time
 			bz.animate({ obj='alien1', duration=4.0, path={
 				--{ 100   100 }
 				{ x=500, y=500 },
@@ -69,14 +72,14 @@ function on_input( self, action_id, action )
 				{ x=900, y=600 },
 			}, easing='TYPE_INCUBIC' })
 		elseif( action.text == 'e' ) then
-			-- test if easing fcn goes > 1.0 ...
+			-- test what happens if the easing fcn goes > 1.0  (it works!)
 			bz.animate({ obj='alien1', duration=4.0, path={
 				--{ 100   100 }
 				{ x=500, y=500 },
 				{ x=900, y=100 },
 			}, easing='TYPE_OUTBACK' })
 		elseif( action.text == 'f' ) then
-			-- make a loop
+			-- create a complex path with a loop in it
 			bz.animate({ obj='alien2', duration=4.0, path={
 				--{ 100   600 }
 				{ x=600, y=500 },
@@ -87,8 +90,9 @@ function on_input( self, action_id, action )
 				{ x=900, y=600 },
 			} })
 		elseif( action.text == 'x' ) then
-			-- can also post messages directly to the controller
-			msg.post( '/mvc#bzController', 'play', {
+			-- you can also post messages directly to the controller 
+			-- (if you know the url; can use bz.info() to find it)
+			msg.post( '/main#bzController', 'play', {
 				gobj = 'alien1',
 				dur  = 2.0,
 				anim_list = {
@@ -97,9 +101,11 @@ function on_input( self, action_id, action )
 				},
 			} )
 		elseif( action.text == 'y' ) then
+			-- press 'y' to see the current positions of both objects
 			print( go.get_position('alien1') )
 			print( go.get_position('alien2') )
 		elseif( action.text == 'z' ) then
+			-- press 'z' to reset both objects back to their starting points
 			go.set_position( vmath.vector3(100,100,0), 'alien1' )
 			go.set_position( vmath.vector3(100,600,0), 'alien2' )
 		end
