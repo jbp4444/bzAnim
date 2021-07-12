@@ -23,7 +23,7 @@ bz.animate({
 	obj = gfx_obj_url, 
 	duration = 4.0,   -- default=1.0
 	delay = 0.0,      -- default=0.0
-	path={ -- starts at current position
+	path={ -- starts at current position, say x=100, y=100
 		{ x=100,y=500 },
 		{ x=500,y=500 },
 		{ x=900,y=500 },
@@ -33,6 +33,26 @@ bz.animate({
 ```
 
 The system will then automatically update the graphics object's position every frame until it is complete.
+
+By default, the system will prepend the graphics object's current position to the path -- so that the animation starts smoothly from where the object is.  If you want to "jump" to a new location (first location in the path), then add the argument `prepend_current=false`.
+
+To make the animation path easier/more compact to write, the system will interpret `x=nil`, `y=nil`, and `z=nil` to mean "the same as the previous point".  So the previous path could be written as:
+
+```lua
+bz.animate({ 
+	obj = gfx_obj_url, 
+	duration = 4.0,   -- default=1.0
+	delay = 0.0,      -- default=0.0
+	path={ -- starts at current position, say x=100, y=100
+		{ y=500 },  -- x stays the same at 100
+		{ x=500 },  -- y stays the same at 500
+		{ x=900 },  -- y stays the same at 500
+		{ y=100 },  -- x stays the same at 900
+	},
+})
+```
+
+(if `prepend_current=false` then you must provide a full `x`, `y`, `z` position for the first point in `path`)
 
 
 ## Easing Functions
@@ -84,7 +104,7 @@ end )
 By default, the animation will simply complete itself and that's it.  It can also send a message back to the graphics object indicating that it has completed.
 
 ```lua
-bz.animate({  obj = gfx_obj_url, path={ { x=100,y=500 } }  })
+bz.animate({  obj = gfx_obj_url, path={ { x=100,y=500 }, on_complete=true }  })
 ```
 
 When the animation is over, the graphics object will receive an `anim_complete` message, with the message-body including all the information above (duration, delay, path, etc.).
