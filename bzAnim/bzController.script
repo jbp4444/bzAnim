@@ -159,7 +159,9 @@ function update( self, dt )
 	local done_list = {}
 	local done_count = 0
 	if( debug_level > 1 ) then
-		print( 'bzAnim - ', #self.anim_list, 'animations found' )
+		if( #self.anim_list > 0 ) then
+			print( 'bzAnim - ', #self.anim_list, 'animations found' )
+		end
 	end
 	for i,anim in ipairs(self.anim_list) do
 		--print( i, anim.gobj, anim.time )
@@ -170,7 +172,9 @@ function update( self, dt )
 		end
 	end
 	if( debug_level > 1 ) then
-		print( 'bzAnim - ', done_count, 'animations completed' )
+		if( done_count > 0 ) then
+			print( 'bzAnim - ', done_count, 'animations completed' )
+		end
 	end
 
 	-- remove any completed animations

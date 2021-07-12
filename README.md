@@ -70,6 +70,7 @@ timer.delay( 0.2, false, function()
 	bz.setDebugLevel(10)
 end )
 ```
+ * setting debug level above 5 will have the system draw the path in simple lines (using `msg.post("@render:", "draw_line", ...)`)
 
 * `bz.setMaxPts( 15 )`
  * by default, we pre-calculate some coefficients for up to 10 points in a curve; if you plan to use more than that, then call `bz.setMaxPts` with the correct value prior to making any `bz.animate` calls
@@ -83,6 +84,10 @@ bz.animate({  obj = gfx_obj_url, path={ { x=100,y=500 } }  })
 ```
 
 When the animation is over, the graphics object will receive an `anim_complete` message, with the message-body including all the information above (duration, delay, path, etc.).
+
+## Example Code
+The github repos has a simple example with two alien ships that fly along bezier curve paths.  Pressing `a` through `f` will make one or two of the ships fly; then hit 'z' to bring them back to their original positions.
+
 
 ## Future Work/To-Do Items
 * We currently use a "message-back" not a function callback; i.e. a message is sent from the controller to the graphics objec through the standard Defold messaging system -- and that may not fit all possible use-cases.  It would be great to add a "true" callback to a user-provided function, but Defold can't pickle/serialize a user-provided function to embed with the messaging system, so it's not nearly as easy as the message-back approach.
