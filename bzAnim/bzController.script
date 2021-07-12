@@ -1,0 +1,279 @@
+
+local bz = require( 'bzAnim.bzLibrary' )
+
+-- Defold easing functions are defined in a giant blob of data/lookup table:
+--     https://github.com/defold/defold/blob/1ae302ec33d4514408c04ad3ae5d3c1efe2057bd/engine/dlib/src/dlib/easing_lookup.h
+-- alt: https://easings.net/ .. click on image to get mathematical def'n
+local easinglib = require( 'bzAnim.easing_lookup' )
+
+local this_script_url = nil
+local debug_level = 0
+
+--  --  --  --  --  --  --  --  --  --
+  --  --  --  --  --  --  --  --  --
+--  --  --  --  --  --  --  --  --  --
+
+local pascalTri = nil
+
+local function calcPascalTriangle( num )
+	-- 2D array to store the values
+	matrix = {}
+	for i=1,num do
+		matrix[i] = {}
+		for j=1,i do
+			matrix[i][j] = 0
+		end
+	end
+
+	-- iterating through the rows
+	for n=1,num do
+		-- iterating through each value of the row
+		for k=1,n do
+			-- first and last column are 0
+			if( (k==1) or (k==n) ) then
+				matrix[n][k] = 1
+			else
+				-- calculating the sum of the above two values
+				matrix[n][k] = matrix[n-1][k-1] + matrix[n-1][k]
+			end
+		end
+	end
+
+	return matrix
+end
+
+-- update a single object .. called mult times from the main update routine
+local function obj_update( obj, dt )
+	local rtn = false
+
+	-- update the overall time-step for this animation
+	obj.time = obj.time + dt
+	-- if this anim has a delay associated with it (t<0) then skip rendering
+	if( obj.time < 0 ) then
+		return rtn
+	end
+
+	-- t0 is the "real" parametric time for this step of the animation
+	local t0 = obj.time / obj.max_time
+
+	-- easing_table is a copy of data from EASING_LOOKUP
+	local easingTbl = obj.easing_table
+	
+	-- now we'll factor in the easing function
+	local i = math.floor( t0*EASING_SAMPLES )
+	local v1 = easingTbl[i+1]
+	local t1 = i * (1/EASING_SAMPLES)
+	local v2
+	if( i < 63 ) then
+		v2 = easingTbl[i+2]
+	else
+		v2 = easingTbl[i+1]
+	end
+	local t2 = (i+1) * (1/EASING_SAMPLES)
+	-- how far into this easing step are we?  percent away from t1
+	local p  = (t0 - t1) * EASING_SAMPLES
+
+	-- calc the t and (1-t) factors for the bezier calcs
+	local t  = v1*(1-p) + v2*p
+	local tp = ( 1 - t )
+	--print( t0, i, ':',t1,t2, ':', v1,v2, ':', p, t, tp )
+
+	-- new position for this time-step
+	local pnew = vmath.vector3()
+
+	-- do the bezier calcs
+	-- e.g. for 4 pts:  1*tp*tp*tp*p0 + 3*tp*tp*t*p1 + 3*tp*t*t*p2 + 1*t*t*t*p3
+	local coefs = obj.coefs
+	local last_pt = nil
+	for i=1,obj.num_pts do
+		local pt = obj.path[i]
+		local t_fac = 1
+		for j=1,(i-1) do
+			t_fac = t_fac * t
+		end
+		for j=(i+1),obj.num_pts do
+			t_fac = t_fac * tp
+		end
+		pnew.x = pnew.x + coefs[i]*t_fac*pt.x
+		pnew.y = pnew.y + coefs[i]*t_fac*pt.y
+		pnew.z = pnew.z + coefs[i]*t_fac*pt.z
+
+		if( debug_level > 5 ) then
+			if( last_pt ~= nil ) then
+				msg.post("@render:", "draw_line", { 
+					start_point = vmath.vector3(last_pt.x,last_pt.y,last_pt.z), 
+					end_point = vmath.vector3( pt.x,pt.y,pt.z ), 
+					color = vmath.vector4( 1, 0, 0, 1 )
+				} )
+			end
+		end
+		last_pt = pt
+	end
+	
+	go.set_position( pnew, obj.gobj )
+
+	-- all done?
+	if( t0 >= 1.0 ) then
+		-- set_position to final location just to be safe
+		local pt = obj.path[ obj.num_pts ]
+		pnew.x = pt.x
+		pnew.y = pt.y
+		pnew.z = pt.z
+		go.set_position( pnew, obj.gobj )
+		if( debug_level > 2 ) then
+			print( 'anim done' )
+		end
+
+		-- and tell the calling func to exit
+		rtn = true
+	end
+
+	return rtn
+end
+
+local function sort_hi2lo( a, b )
+	return tonumber(a) > tonumber(b) 
+end	
+
+--  --  --  --  --  --  --  --  --  --
+--  --  --  --  --  --  --  --  --
+--  --  --  --  --  --  --  --  --  --
+
+function init(self)
+	this_script_url = msg.url()
+	bz.registerController( this_script_url )
+
+	-- calc initial vals for pascal triangle
+	pascalTri = calcPascalTriangle(10)
+
+	-- clear out the animation-list
+	self.anim_list = {}
+
+end
+
+-- function final(self)
+--		bz.unregisterController( self )
+-- end
+
+function update( self, dt )
+	local done_list = {}
+	local done_count = 0
+	if( debug_level > 1 ) then
+		print( 'bzAnim - ', #self.anim_list, 'animations found' )
+	end
+	for i,anim in ipairs(self.anim_list) do
+		--print( i, anim.gobj, anim.time )
+		local done = obj_update( anim, dt )
+		if( done ) then
+			table.insert( done_list, i )
+			done_count = done_count + 1
+		end
+	end
+	if( debug_level > 1 ) then
+		print( 'bzAnim - ', done_count, 'animations completed' )
+	end
+
+	-- remove any completed animations
+	table.sort( done_list, sort_hi2lo )
+	for i=1,#done_list do
+		idx = done_list[i]
+		if( debug_level > 2 ) then
+			print( 'deleting', idx )
+		end
+		
+		anim_obj = self.anim_list[idx]
+		if( anim_obj.on_complete ) then
+			if( debug_level > 2 ) then
+				print( 'sending on_complete msg to ', anim_obj.gobj )
+			end
+			msg.post( anim_obj.gobj, 'anim_complete', anim_obj )
+		end
+		table.remove( self.anim_list, idx )
+	end
+end
+
+function on_message( self, message_id, message, sender )
+	if( message_id == hash('play') ) then
+		if( debug_level > 1 ) then
+			print( 'bzAnim - recvd new animation:', message.gobj, message.dur, #message.path )
+		end
+		
+		-- TODO: check for required fields, etc.
+		local gobj     = message.gobj
+		local max_time = message.dur
+		local delay    = message.delay
+		local easing   = message.easing
+		local path     = message.path
+		local prepend_cur = message.prepend_cur or true
+		local on_complete = message.on_complete or false
+
+		if( EASING_TYPES[easing] == nil ) then
+			-- TODO: throw error?
+			print( '* Warning: unknown easing type', easing, 'using TYPE_LINEAR instead' )
+			easing = 'TYPE_LINEAR'
+		end
+		local easingIdx = EASING_TYPES[easing] * (EASING_SAMPLES+1)
+		local easingTbl = {}
+		for i=1,(EASING_SAMPLES+1) do
+			table.insert( easingTbl, EASING_LOOKUP[easingIdx+i] )
+		end
+
+		-- prep all the data entries
+		local last_pos
+		if( prepend_cur ) then
+			-- preprend the current gfx-obj position
+			last_pos = go.get_position( gobj )
+			table.insert( path, 1, { x=last_pos.x,y=last_pos.y,z=last_pos.z } )
+		end
+		last_pos = { x=path[1].x, y=path[1].y, z=path[1].z }
+		local num_pts  = #path
+		for i,v in ipairs(path) do
+			path[i].x = v.x or last_pos.x
+			path[i].y = v.y or last_pos.y
+			path[i].z = v.z or last_pos.z
+
+			last_pos.x = path[i].x
+			last_pos.y = path[i].y
+			last_pos.z = path[i].z
+		end
+		-- TODO: if num_pts > #pascalTri, then re-gen pascalTri
+		if( num_pts > #pascalTri ) then
+			print( '*** ERROR: need to increase max_pts for bezier curve calcs' )
+			print( '    try, e.g.:  bz.setMaxPts(', num_pts, ')' )
+		end
+
+		local data = {
+			gobj = gobj,
+			num_pts = num_pts,
+			time = -delay,
+			coefs = pascalTri[num_pts],
+			max_time = max_time,
+			easing = easing,
+			easing_table = easingTbl,
+			easing_samples = EASING_SAMPLES,
+			path = path,
+			on_complete = on_complete,
+		}
+		table.insert( self.anim_list, data )
+
+	elseif( message_id == hash('debug_level') ) then
+		debug_level = message.level or message.debug_level or 0
+		if( debug_level > 1 ) then
+			print( 'bzAnim - debug_level set to', debug_level )
+		end
+
+	elseif( message_id == hash('max_pts') ) then
+		local max_pts = tonumber(message.max_pts)
+		if( max_pts > #pascalTri ) then
+			pascalTri = calcPascalTriangle( max_pts )
+		end
+		if( debug_level > 1 ) then
+			print( 'bzAnim - max_pts set to', max_pts )
+		end
+	end
+end
+
+-- function on_input(self, action_id, action)
+-- 	--    msg.post(".", "acquire_input_focus")
+-- end
+

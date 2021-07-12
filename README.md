@@ -1,2 +1,90 @@
-# bzAnim
-A Lua/Defold-based animation library for bezier curve animations
+# Bezier Animation Library
+
+This is a Lua/Defold-based animation library that allows you to send graphics objects on a non-linear (bezier curve) path.
+
+## Installation
+You can use bezierLibrary in your own project by adding this project as a Defold library dependency. Open your game.project file and in the dependencies field under project add:
+
+https://github.com/AllanDouglas/deftimeline/archive/master.zip
+
+Once added, you should include the bzController.script in your main collection, then include the bzLibrary.lua module in your own graphics objects scripts:
+
+```lua
+local bz = require("bzAnim.bzLibrary")
+```
+
+## Usage
+With the bz-library included in your script, you can add new animations with:
+
+```lua
+bz.animate({ 
+	obj = gfx_obj_url, 
+	duration = 4.0,   -- default=1.0
+	delay = 0.0,      -- default=0.0
+	path={ -- starts at current position
+		{ x=100,y=500 },
+		{ x=500,y=500 },
+		{ x=900,y=500 },
+		{ x=900,y=100 },
+	},
+})
+```
+
+The system will then automatically update the graphics object's position every frame until it is complete.
+
+
+## Easing Functions
+The animation sequence normally runs at a constant "speed" based on the parametric-time inside the Bezier calculations.  If you have a reasonably straight path, this may look like a normal, constant-speed movement.  If, however, you have a complex path, then the "Bezier movement" may not look natural (or not look constant-speed) ... or maybe you don't want it to look constant-speed.  In those cases, you can experiment with the easing functions to alter the mapping between real-time and Bezier-time:
+
+```lua
+bz.animate({ 
+	obj = gfx_obj_url, 
+	duration = 4.0,   -- default=1.0
+	path={ -- starts at current position
+		{ x=100,y=500 },
+		{ x=500,y=500 },
+		{ x=900,y=500 },
+		{ x=900,y=100 },
+	},
+	easing = TYPE_INQUAD
+})
+```
+
+All of the standard Defold easing functions should be there, with the obvious word-changes (`go.EASING_LINEAR` becomes `TYPE_LINEAR`; `go.EASING_INCUBIC` becomes `TYPE_INCUBIC`; etc.).  Alternately, for a list of the available functions, and other info about the bz-controller:
+
+```lua
+pprint( bz.info() )
+```
+
+## Helper Functions
+* `bz.isReady()`
+ * there can be a slight delay at the start of the program where the main controller script is still 'registering' with the bzAnim library (the user-facing code); you can check that it is ready with this function
+ * if the system is not ready, usually an 0.1s or 0.2s delay will be enough:
+* `bz.info()`
+ * returns a table with information about the system -- the main controller script URL; the list of known easing functions; the current max number of points
+* `bz.setDebugLevel( 10 )`
+ * sets the amount of debug printing done by the system (0=none, 1=minimal, 10=max); the start-of-program delay can trip you up here -- if your graphics object script calls `setDebugLevel` in it's `init()` routine, there is the chance that the controller isn't ready yet to receive the message; it is often good enough to use `timer.delay` to get around this:
+
+```lua
+timer.delay( 0.2, false, function()
+	bz.setDebugLevel(10)
+end )
+```
+
+* `bz.setMaxPts( 15 )`
+ * by default, we pre-calculate some coefficients for up to 10 points in a curve; if you plan to use more than that, then call `bz.setMaxPts` with the correct value prior to making any `bz.animate` calls
+
+
+## Message Callbacks
+By default, the animation will simply complete itself and that's it.  It can also send a message back to the graphics object indicating that it has completed.
+
+```lua
+bz.animate({  obj = gfx_obj_url, path={ { x=100,y=500 } }  })
+```
+
+When the animation is over, the graphics object will receive an `anim_complete` message, with the message-body including all the information above (duration, delay, path, etc.).
+
+## Future Work/To-Do Items
+* We currently use a "message-back" not a function callback; i.e. a message is sent from the controller to the graphics objec through the standard Defold messaging system -- and that may not fit all possible use-cases.  It would be great to add a "true" callback to a user-provided function, but Defold can't pickle/serialize a user-provided function to embed with the messaging system, so it's not nearly as easy as the message-back approach.
+* The easing system is a horrible, horrible hack -- we pull the C-language include file that has all the easing function samples used by the "real" Defold easing functions, then unpack them into our Lua code!  If the Defold/C header file ever changes, we'll have to do that all over again (honestly, it was a bunch of search/replace steps, so not too bad).  But it means that our easing functions could become out of sync with Defold's at any point.
+

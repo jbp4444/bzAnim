@@ -1,0 +1,92 @@
+
+local bz = require( 'bzAnim.bzLibrary' )
+
+function init( self )
+	msg.post( '.', 'acquire_input_focus' )
+
+	timer.delay( 0.2, false, function()
+		bz.setDebugLevel(10)
+		pprint( bz.info() )
+	end )
+end
+
+-- function final(self)
+-- end
+
+-- function update( self, dt )
+-- end
+
+-- function on_message( self, message_id, message, sender )
+-- end
+
+function on_input( self, action_id, action )
+	if( action_id == hash('text') ) then
+		if( action.text == 'a' ) then
+			bz.animate({ obj='alien1', duration=4.0, path={
+				--{ 100   100 }
+				{ x=100,y=500 },
+				{ x=500,y=500 },
+				{ x=900,y=500 },
+				{ x=900,y=100 },
+			} })
+		elseif( action.text == 'b' ) then
+			bz.animate({ obj='alien1', duration=4.0, path={
+				--{ 100   100 }
+				{ y=500 },
+				{ x=500 },
+				{ x=900 },
+				{ y=100 },
+			}, easing='TYPE_INCUBIC' })
+		elseif( action.text == 'c' ) then
+			bz.animate({ obj='alien1', duration=2.0, path={
+					{ x=500,y=500 },
+					{ x=900,y=100 },
+			}, delay=1.0 })
+		elseif( action.text == 'd' ) then
+			bz.animate({ obj='alien1', duration=4.0, path={
+				--{ 100   100 }
+				{ x=500, y=500 },
+				{ x=900, y=100 },
+			}, easing='TYPE_LINEAR' })
+			bz.animate({ obj='alien2', duration=4.0, path={
+				--{ 100   600 }
+				{ x=500, y=200 },
+				{ x=900, y=600 },
+			}, easing='TYPE_INCUBIC' })
+		elseif( action.text == 'e' ) then
+			-- test if easing fcn goes > 1.0 ...
+			bz.animate({ obj='alien1', duration=4.0, path={
+				--{ 100   100 }
+				{ x=500, y=500 },
+				{ x=900, y=100 },
+			}, easing='TYPE_OUTBACK' })
+		elseif( action.text == 'f' ) then
+			-- make a loop
+			bz.animate({ obj='alien2', duration=4.0, path={
+				--{ 100   600 }
+				{ x=600, y=500 },
+				{ x=550, y=450 },
+				{ x=500, y=400 },
+				{ x=450, y=450 },
+				{ x=400, y=500 },
+				{ x=900, y=600 },
+			} })
+		elseif( action.text == 'x' ) then
+			-- can also post messages directly to the controller
+			msg.post( '/mvc#bzController', 'play', {
+				gobj = 'alien1',
+				dur  = 2.0,
+				anim_list = {
+					{ x=500,y=500 },
+					{ x=900,y=100 },
+				},
+			} )
+		elseif( action.text == 'y' ) then
+			print( go.get_position('alien1') )
+			print( go.get_position('alien2') )
+		elseif( action.text == 'z' ) then
+			go.set_position( vmath.vector3(100,100,0), 'alien1' )
+			go.set_position( vmath.vector3(100,600,0), 'alien2' )
+		end
+	end
+end
