@@ -21,7 +21,10 @@
 
 function on_message( self, message_id, message, sender )
 	if( message_id == hash('anim_complete') ) then
-		print( 'animation-complete message received at', msg.url() )
-		pprint( message )
+		print( 'anim_complete message received at', msg.url() )
+		--pprint( message )
+	elseif( message_id == hash('anim_canceled') ) then
+		print( 'anim_canceled message received at', msg.url() )
+		--pprint( message )
 	end
 end

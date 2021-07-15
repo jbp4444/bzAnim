@@ -16,19 +16,21 @@
 
 local bz = require( 'bzAnim.bzLibrary' )
 
+-- local variables ...
+
 -- Defold easing functions are defined in a giant blob of data/lookup table:
 --     https://github.com/defold/defold/blob/1ae302ec33d4514408c04ad3ae5d3c1efe2057bd/engine/dlib/src/dlib/easing_lookup.h
 -- alt: https://easings.net/ .. click on image to get mathematical def'n
 local easinglib = require( 'bzAnim.easing_lookup' )
 
-local this_script_url = nil
 local debug_level = 0
+
+local pascalTri = nil
+
 
 --  --  --  --  --  --  --  --  --  --
   --  --  --  --  --  --  --  --  --
 --  --  --  --  --  --  --  --  --  --
-
-local pascalTri = nil
 
 local function calcPascalTriangle( num )
 	-- 2D array to store the values
@@ -113,7 +115,7 @@ local function obj_update( obj, dt )
 		pnew.y = pnew.y + coefs[i]*t_fac*pt.y
 		pnew.z = pnew.z + coefs[i]*t_fac*pt.z
 
-		if( debug_level > 5 ) then
+		if( debug_level > 2 ) then
 			if( last_pt ~= nil ) then
 				msg.post("@render:", "draw_line", { 
 					start_point = vmath.vector3(last_pt.x,last_pt.y,last_pt.z), 
@@ -155,8 +157,7 @@ end
 --  --  --  --  --  --  --  --  --  --
 
 function init(self)
-	this_script_url = msg.url()
-	bz.registerController( this_script_url )
+	bz.registerController( msg.url() )
 
 	-- calc initial vals for pascal triangle
 	pascalTri = calcPascalTriangle(10)
@@ -166,18 +167,23 @@ function init(self)
 
 end
 
--- function final(self)
---		bz.unregisterController( self )
--- end
+function final(self)
+	bz.unregisterController( msg.url() )
+end
 
+-- per-frame update of all known animations
 function update( self, dt )
+	-- we'll track the completed animations (for later deletion)
 	local done_list = {}
 	local done_count = 0
 	if( debug_level > 1 ) then
-		if( #self.anim_list > 0 ) then
+		if( #self.anim_list > 5 ) then
 			print( 'bzAnim - ', #self.anim_list, 'animations found' )
 		end
 	end
+
+	-- update each known animation
+	-- -- if there is a delay (no anim to be done yet), the obj_update func will exit early
 	for i,anim in ipairs(self.anim_list) do
 		--print( i, anim.gobj, anim.time )
 		local done = obj_update( anim, dt )
@@ -201,11 +207,17 @@ function update( self, dt )
 		end
 		
 		anim_obj = self.anim_list[idx]
-		if( anim_obj.on_complete ) then
-			if( debug_level > 2 ) then
-				print( 'sending on_complete msg to ', anim_obj.gobj )
+		-- if on_complete is not nil, assume it is a url
+		if( anim_obj.on_complete ~= nil ) then
+			local the_url = anim_obj.on_complete
+			-- if user sent url='.', then send to graphics-object
+			if( the_url == true ) then
+				the_url = anim_obj.gobj
 			end
-			msg.post( anim_obj.gobj, 'anim_complete', anim_obj )
+			if( debug_level > 2 ) then
+				print( 'sending anim_complete msg to ', the_url )
+			end
+			msg.post( the_url, 'anim_complete', anim_obj )
 		end
 		table.remove( self.anim_list, idx )
 	end
@@ -223,8 +235,16 @@ function on_message( self, message_id, message, sender )
 		local delay    = message.delay
 		local easing   = message.easing
 		local path     = message.path
-		local prepend_cur = message.prepend_cur or true
-		local on_complete = message.on_complete or false
+		local uid      = message.uid
+		local prepend_cur = true
+		if( message.prepend_cur ~= nil ) then
+			prepend_cur = message.prepend_cur
+		end
+		local on_complete = message.on_complete or nil
+
+		if( on_complete == false ) then
+			on_complete = nil
+		end
 
 		if( EASING_TYPES[easing] == nil ) then
 			-- TODO: throw error?
@@ -272,8 +292,46 @@ function on_message( self, message_id, message, sender )
 			easing_samples = EASING_SAMPLES,
 			path = path,
 			on_complete = on_complete,
+			uid = uid,
 		}
 		table.insert( self.anim_list, data )
+
+	elseif( message_id == hash('cancel') ) then
+		-- TODO: check for required fields, etc.
+		local uid = message.uid
+		if( debug_level > 1 ) then
+			print( 'bzAnim - recvd cancel signal:', uid )
+		end
+
+		local found_list = {}
+		for i,anim in ipairs(self.anim_list) do
+			if( anim.uid == uid ) then
+				found_idx = i
+				table.insert( found_list, i )
+
+				if( anim.on_complete ~= nil ) then
+					local the_url = anim.on_complete
+					-- if user sent url='.', then send to graphics-object
+					if( the_url == true ) then
+						the_url = anim.gobj
+					end
+					if( debug_level > 2 ) then
+						print( 'sending anim_canceled msg to ', the_url )
+					end
+					msg.post( the_url, 'anim_canceled', anim )
+				end
+			end
+		end
+
+		-- remove any completed animations
+		table.sort( found_list, sort_hi2lo )
+		for i=1,#found_list do
+			idx = found_list[i]
+			if( debug_level > 2 ) then
+				print( 'canceling uid=', uid, 'at', idx )
+			end
+			table.remove( self.anim_list, idx )
+		end
 
 	elseif( message_id == hash('debug_level') ) then
 		debug_level = message.level or message.debug_level or 0

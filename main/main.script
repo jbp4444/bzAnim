@@ -25,42 +25,31 @@ function init( self )
 	-- if you want debugging turned on, you need a slight delay
 	-- to allow the controller to register with the user-library
 	timer.delay( 0.2, false, function()
-		bz.setDebugLevel(10)
+		bz.setDebugLevel(3)
 		pprint( bz.info() )
 	end )
+
 end
 
 function on_input( self, action_id, action )
 	if( action_id == hash('text') ) then
 		if( action.text == 'a' ) then
-			-- simple curved animation
+			print( 'simple curved animation with message-back to main.script' )
 			bz.animate({ obj='alien1', duration=4.0, path={
 				--{ 100   100 }
 				{ x=100,y=500 },
 				{ x=500,y=500 },
 				{ x=900,y=500 },
 				{ x=900,y=100 },
-			} })
+			}, on_complete=msg.url() })
 		elseif( action.text == 'b' ) then
-			-- adding an easing function to alter speed over the curve
-			bz.animate({ obj='alien1', duration=4.0, path={
-				--{ 100   100 }
-				{ y=500 },
-				{ x=500 },
-				{ x=900 },
-				{ y=100 },
-			}, easing='TYPE_INCUBIC' })
-		elseif( action.text == 'c' ) then
-			-- adding a delay to the start of the animation
-			-- and sending a message when complete
-			-- NOTE: the message is sent to the 'alien' object,
-			--       and NOT to this script
+			print( 'simple animation with a delayed start, with message-back to alien.script for alien1' )
 			bz.animate({ obj='alien1', duration=2.0, path={
 					{ x=500,y=500 },
 					{ x=900,y=100 },
 			}, delay=1.0, on_complete=true })
-		elseif( action.text == 'd' ) then
-			-- launch two animations at same time
+		elseif( action.text == 'c' ) then
+			print( 'two animations at same time, showing 2 different easing functions side-by-side' )
 			bz.animate({ obj='alien1', duration=4.0, path={
 				--{ 100   100 }
 				{ x=500, y=500 },
@@ -71,43 +60,88 @@ function on_input( self, action_id, action )
 				{ x=500, y=200 },
 				{ x=900, y=600 },
 			}, easing='TYPE_INCUBIC' })
-		elseif( action.text == 'e' ) then
-			-- test what happens if the easing fcn goes > 1.0  (it works!)
+		elseif( action.text == 'd' ) then
+			print( 'test what happens if the easing function goes > 1.0' )
 			bz.animate({ obj='alien1', duration=4.0, path={
 				--{ 100   100 }
 				{ x=500, y=500 },
 				{ x=900, y=100 },
 			}, easing='TYPE_OUTBACK' })
-		elseif( action.text == 'f' ) then
-			-- create a complex path with a loop in it
-			bz.animate({ obj='alien2', duration=4.0, path={
+		elseif( action.text == 'e' ) then
+			print( 'long-duration animation that gets canceled' )
+			local idn = bz.animate({ obj='alien2', duration=5.0, path={
 				--{ 100   600 }
-				{ x=600, y=500 },
-				{ x=550, y=450 },
-				{ x=500, y=400 },
-				{ x=450, y=450 },
-				{ x=400, y=500 },
 				{ x=900, y=600 },
 			} })
-		elseif( action.text == 'x' ) then
-			-- you can also post messages directly to the controller 
-			-- (if you know the url; can use bz.info() to find it)
-			msg.post( '/main#bzController', 'play', {
-				gobj = 'alien1',
-				dur  = 2.0,
-				anim_list = {
-					{ x=500,y=500 },
-					{ x=900,y=100 },
+			print( 'anim returned idn=', idn )
+			timer.delay( 4.0, false, function()
+				print( 'canceling idn=', idn )
+				bz.cancel( idn )
+			end)
+		elseif( action.text == 'f' ) then
+			print( 'long-duration animation that gets canceled; with message-back to main.script' )
+			local idn = bz.animate({ obj='alien2', duration=5.0, path={
+				--{ 100   600 }
+				{ x=900, y=600 },
+			}, on_complete=msg.url() })
+			print( 'anim returned idn=', idn )
+			timer.delay( 4.0, false, function()
+				print( 'canceling idn=', idn )
+				bz.cancel( idn )
+			end)
+		elseif( action.text == 'g' ) then
+			print( 'long-duration animation that gets canceled; with message-back to alien.script for alien2' )
+			local idn = bz.animate({ obj='alien2', duration=5.0, path={
+				--{ 100   600 }
+				{ x=900, y=600 },
+			}, on_complete=true })
+			print( 'anim returned idn=', idn )
+			timer.delay( 4.0, false, function()
+				print( 'canceling idn=', idn )
+				bz.cancel( idn )
+			end)
+
+		elseif( action.text == 'h' ) then
+			print( 'path-sequence animation with several segments' )
+			local idn = bz.animateSequence({ obj='alien2', segments={
+				{ duration=2.0, path={	--{ 100   600 }
+					{ x=200, y=300 },
+					{ x=300, y=600 }, }, },
+				{ duration=2.0, path={
+					{ x=400, y=300 },
+					{ x=500, y=600 }, }, },
+				{ duration=2.0, path={
+					{ x=600, y=300 },
+					{ x=700, y=600 }, }, },
+				{ duration=2.0, path={
+					{ x=800, y=300 },
+					{ x=900, y=600 }, }, },
 				},
-			} )
+			})
+			print( 'seq-anim returned idn=', idn )
+			timer.delay( 7.0, false, function()
+				print( 'canceling seq with idn=', idn )
+				bz.cancel( idn )
+			end)
+
 		elseif( action.text == 'y' ) then
 			-- press 'y' to see the current positions of both objects
-			print( go.get_position('alien1') )
-			print( go.get_position('alien2') )
+			print( 'alien1 position=', go.get_position('alien1') )
+			print( 'alien2 position=', go.get_position('alien2') )
 		elseif( action.text == 'z' ) then
 			-- press 'z' to reset both objects back to their starting points
 			go.set_position( vmath.vector3(100,100,0), 'alien1' )
 			go.set_position( vmath.vector3(100,600,0), 'alien2' )
 		end
+	end
+end
+
+function on_message( self, message_id, message, sender )
+	if( message_id == hash('anim_complete') ) then
+		print( 'anim_complete received at', msg.url(), 'from', message.gobj )
+		--pprint( message )
+	elseif( message_id == hash('anim_canceled') ) then
+		print( 'anim_canceled received at', msg.url(), 'from', message.gobj )
+		--pprint( message )
 	end
 end
