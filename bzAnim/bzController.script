@@ -86,47 +86,48 @@ local function obj_update( obj, dt )
 	else
 		v2 = easingTbl[i+1]
 	end
-	local t2 = (i+1) * (1/EASING_SAMPLES)
 	-- how far into this easing step are we?  percent away from t1
 	local p  = (t0 - t1) * EASING_SAMPLES
-
-	-- calc the t and (1-t) factors for the bezier calcs
-	local t  = v1*(1-p) + v2*p
-	local tp = ( 1 - t )
-	--print( t0, i, ':',t1,t2, ':', v1,v2, ':', p, t, tp )
 
 	-- new position for this time-step
 	local pnew = vmath.vector3()
 
-	-- do the bezier calcs
-	-- e.g. for 4 pts:  1*tp*tp*tp*p0 + 3*tp*tp*t*p1 + 3*tp*t*t*p2 + 1*t*t*t*p3
-	local coefs = obj.coefs
-	local last_pt = nil
-	for i=1,obj.num_pts do
-		local pt = obj.path[i]
-		local t_fac = 1
-		for j=1,(i-1) do
-			t_fac = t_fac * t
-		end
-		for j=(i+1),obj.num_pts do
-			t_fac = t_fac * tp
-		end
-		pnew.x = pnew.x + coefs[i]*t_fac*pt.x
-		pnew.y = pnew.y + coefs[i]*t_fac*pt.y
-		pnew.z = pnew.z + coefs[i]*t_fac*pt.z
+	-- calc the t and (1-t) factors for the bezier calcs
+	if( v1 ~= nil ) then
+		local t  = v1*(1-p) + v2*p
+		local tp = ( 1 - t )
+		--print( t0, i, ':',t1, ':', v1,v2, ':', p, t, tp )
 
-		if( debug_level > 2 ) then
-			if( last_pt ~= nil ) then
-				msg.post("@render:", "draw_line", { 
-					start_point = vmath.vector3(last_pt.x,last_pt.y,last_pt.z), 
-					end_point = vmath.vector3( pt.x,pt.y,pt.z ), 
-					color = vmath.vector4( 1, 0, 0, 1 )
-				} )
+		-- do the bezier calcs
+		-- e.g. for 4 pts:  1*tp*tp*tp*p0 + 3*tp*tp*t*p1 + 3*tp*t*t*p2 + 1*t*t*t*p3
+		local coefs = obj.coefs
+		local last_pt = nil
+		for i=1,obj.num_pts do
+			local pt = obj.path[i]
+			local t_fac = 1
+			for j=1,(i-1) do
+				t_fac = t_fac * t
 			end
+			for j=(i+1),obj.num_pts do
+				t_fac = t_fac * tp
+			end
+			pnew.x = pnew.x + coefs[i]*t_fac*pt.x
+			pnew.y = pnew.y + coefs[i]*t_fac*pt.y
+			pnew.z = pnew.z + coefs[i]*t_fac*pt.z
+
+			if( debug_level > 2 ) then
+				if( last_pt ~= nil ) then
+					msg.post("@render:", "draw_line", { 
+						start_point = vmath.vector3(last_pt.x,last_pt.y,last_pt.z), 
+						end_point = vmath.vector3( pt.x,pt.y,pt.z ), 
+						color = vmath.vector4( 1, 0, 0, 1 )
+					} )
+				end
+			end
+			last_pt = pt
 		end
-		last_pt = pt
 	end
-	
+
 	go.set_position( pnew, obj.gobj )
 
 	-- all done?
